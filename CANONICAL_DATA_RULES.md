@@ -30,7 +30,6 @@ Os dados provêm da 28ª revisão das Projeções Populacionais Mundiais das Na�
 | `WPP2024_Demographic_Indicators_notes.csv` | CSV | 59 | Metadados | Dicionário canônico de variáveis, nomes oficiais e unidades de medida. |
 
 ### 2.2. Particularidades Técnicas de Carregamento
-* **Compressão:** Os arquivos `.csv.gz` devem ser lidos preferencialmente de forma direta com bibliotecas modernas (ex: `pd.read_csv(..., compression='gzip')`).
 * **Encoding:** Usar obrigatoriamente `encoding='utf-8-sig'` (ou `UTF-8-BOM`) para evitar caracteres corrompidos na primeira coluna (`SortOrder`).
 * **Atenção à extração manual:** Ao descompactar via 7-Zip ou ferramentas de sistema no Windows, a UN armazena o arquivo com o sufixo `_csv` em vez de `.csv`. É necessário renomear para `.csv` caso seja aberto em planilhas.
 * **Escala de População:** Variáveis de volume de pessoas (`TPopulation...`, `Births...`, `Deaths...`, `NetMigrations`) estão expressas em **milhares de indivíduos** (`thousands`). Para escala unitária, deve-se multiplicar por $1.000$.
@@ -40,7 +39,6 @@ Os dados provêm da 28ª revisão das Projeções Populacionais Mundiais das Na�
 ## 3. Regras Canônicas de Integridade e Filtragem
 
 > [!CAUTION]
-> **A Armadilha de `Location` e a Prevenção da Dupla Contagem:**  
 > A coluna `Location` não lista apenas países soberanos. Ela contém simultaneamente:
 > 1. Nações independentes e territórios (ex: *Brazil*, *Japan*, *Kenya*).
 > 2. Agregados geográficos e continentais (ex: *South America*, *Sub-Saharan Africa*, *World*).
