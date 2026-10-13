@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demographic Atlas · WPP 2024</title>
+<style>
+  :root{
+    --paper:#f4eee0; --paper2:#faf6ea; --page:#e8e0cc; --ink:#2a2722; --muted:#6f675a; --faint:#a89f8c;
+    --ox:#8b2e1f; --serif:"Palatino Linotype",Palatino,"Book Antiqua","Iowan Old Style",Georgia,"Times New Roman",serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--page);color:var(--ink);overflow:hidden;font-family:var(--serif);-webkit-font-smoothing:antialiased}
+  #globe{position:fixed;inset:0}
+  #frame{position:fixed;inset:9px;border:1px solid var(--ink);pointer-events:none;z-index:9;outline:1px solid var(--ink);outline-offset:4px}
+  button,input{font:inherit;color:inherit}
+  button{cursor:pointer}
+  .box{background:var(--paper2);border:1px solid var(--ink);box-shadow:3px 3px 0 rgba(42,39,34,.18)}
+  .sc{font-variant:small-caps;letter-spacing:.09em}
+
+  /* ---- cartouche ---- */
+  #title{position:fixed;left:30px;top:30px;z-index:5;padding:3px;max-width:340px}
+  #title .in{border:1px solid var(--ink);padding:12px 16px 11px}
+  #title h1{margin:0;font-size:22px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+  #title .sub{margin-top:4px;font-size:12.5px;font-style:italic;color:var(--muted)}
+  #world{margin-top:9px;padding-top:8px;border-top:1px solid var(--ink);font-size:12px;color:var(--muted);display:flex;align-items:baseline;gap:9px}
+  #world b{font-size:19px;color:var(--ink);font-weight:700;font-variant-numeric:lining-nums tabular-nums}
+
+  /* ---- layers ---- */
+  #metrics{position:fixed;left:30px;top:50%;transform:translateY(-35%);z-index:5;width:206px;padding:3px}
+  #metrics .in{border:1px solid var(--ink);padding:10px 4px 6px}
+  #metrics .hd{font-size:12px;padding:0 12px 7px;border-bottom:1px solid var(--ink);margin-bottom:4px}
+  .mbtn{display:flex;align-items:baseline;gap:9px;width:100%;background:none;border:0;border-left:3px solid transparent;text-align:left;padding:5px 12px 5px 9px;font-size:14px;color:var(--muted)}
+  .mbtn:hover{color:var(--ink);background:rgba(42,39,34,.05)}
+  .mbtn.on{color:var(--ink);font-weight:700;border-left-color:var(--ox);background:rgba(139,46,31,.07)}
+  .mbtn s{text-decoration:none;font-size:11px;width:14px;color:var(--faint);font-variant-numeric:lining-nums}
+
+  /* ---- tools ---- */
+  #tools{position:fixed;right:30px;top:30px;z-index:7;display:flex;gap:6px;align-items:stretch}
+  #search{width:220px;padding:7px 11px;border:1px solid var(--ink);background:var(--paper2);outline:none;font-size:14px;font-style:italic}
+  #search:focus{background:#fff}
+  .tbtn{padding:7px 13px;border:1px solid var(--ink);background:var(--paper2);font-size:13px}
+  .tbtn:hover{background:var(--ink);color:var(--paper2)}
+
+  /* ---- key + timeline ---- */
+  #dock{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:5;width:min(800px,calc(100vw - 470px));min-width:460px;padding:3px}
+  #dock .in{border:1px solid var(--ink);padding:9px 16px 9px}
+  #legendttl{font-size:13px;display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+  #legendttl b{font-size:14px}
+  #legendttl i{color:var(--muted);font-size:12.5px}
+  #legend{display:flex;gap:0}
+  .cls{flex:1;min-width:0;text-align:center}
+  .cls .sw{height:14px;border:1px solid var(--ink);border-left-width:0}
+  .cls:first-child .sw{border-left-width:1px}
+  .cls .lb{font-size:11px;line-height:1.15;margin-top:3px;color:var(--muted);font-variant-numeric:lining-nums}
+  #timeline{display:flex;align-items:center;gap:14px;margin-top:9px;padding-top:8px;border-top:1px solid var(--ink)}
+  #play{width:32px;height:32px;border:1px solid var(--ink);background:var(--paper2);display:grid;place-items:center;flex:none;padding:0}
+  #play:hover{background:var(--ink)}#play:hover svg{fill:var(--paper2)}
+  #play svg{width:12px;height:12px;fill:var(--ink)}
+  #yearbox{min-width:98px;text-align:center}
+  #year{font-size:27px;font-weight:700;line-height:1;font-variant-numeric:lining-nums tabular-nums}
+  #phase{font-size:11px;margin-top:3px;color:var(--muted);font-style:italic}
+  #phase.proj{color:var(--ox)}
+  #tl{flex:1;position:relative;padding-bottom:15px}
+  #slider{display:block;width:100%;-webkit-appearance:none;appearance:none;height:16px;margin:0;background-color:transparent;
+    background-image:linear-gradient(90deg,var(--ink) 49.3%,transparent 49.3%),repeating-linear-gradient(90deg,var(--ox) 0 5px,transparent 5px 9px);
+    background-size:100% 2px,100% 2px;background-position:center,center;background-repeat:no-repeat;outline:none}
+  #slider::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--paper2);border:2px solid var(--ink);cursor:pointer}
+  #slider::-moz-range-thumb{width:11px;height:11px;border-radius:50%;background:var(--paper2);border:2px solid var(--ink);cursor:pointer}
+  #slider:disabled{opacity:.35}
+  #tlab{position:absolute;left:0;right:0;bottom:0;height:13px;font-size:10.5px;color:var(--muted)}
+  #tlab span{position:absolute;transform:translateX(-50%);font-variant-numeric:lining-nums}
+
+  /* ---- tooltip ---- */
+  .tip{padding:6px 10px;background:var(--paper2);border:1px solid var(--ink);font:13px var(--serif);color:var(--ink);box-shadow:2px 2px 0 rgba(42,39,34,.2)}
+  .tip b{font-size:14px}.tip .v{font-weight:700;color:var(--ox)}.tip .m{color:var(--muted);font-style:italic}
+  .tip i.sq{display:inline-block;width:10px;height:10px;border:1px solid var(--ink);margin-right:5px;vertical-align:-1px}
+
+  /* ---- gazetteer panel ---- */
+  #panel{position:fixed;right:30px;top:78px;bottom:28px;width:380px;z-index:6;padding:3px;transform:translateX(calc(100% + 40px));transition:transform .4s cubic-bezier(.2,.8,.2,1)}
+  #panel.open{transform:none}
+  body.pan #dock{left:calc(50% - 90px);width:min(800px,calc(100vw - 692px));min-width:430px}
+  #pin{height:100%;border:1px solid var(--ink);position:relative;display:flex;flex-direction:column;min-height:0}
+  #pscroll{overflow-y:auto;padding:16px 18px 20px;flex:1}
+  #pscroll::-webkit-scrollbar{width:8px}#pscroll::-webkit-scrollbar-thumb{background:var(--faint)}
+  #close{position:absolute;right:8px;top:8px;width:26px;height:26px;border:1px solid var(--ink);background:var(--paper2);font-size:15px;line-height:1;z-index:2;padding:0}
+  #close:hover{background:var(--ink);color:var(--paper2)}
+  .cname{font-size:28px;font-weight:700;line-height:1.05;margin:0 34px 3px 0;letter-spacing:.01em}
+  .csub{font-size:13px;color:var(--muted);font-style:italic;padding-bottom:10px;border-bottom:2px solid var(--ink)}
+  .tag{display:inline-flex;align-items:center;gap:7px;margin-top:11px;font-size:13px;padding:3px 9px 3px 7px;border:1px solid var(--ink)}
+  .tag i{width:11px;height:11px;border:1px solid var(--ink)}
+  h3{font-size:12.5px;font-weight:400;margin:20px 0 6px;padding-bottom:3px;border-bottom:1px solid var(--ink)}
+  h3 em{color:var(--muted)}
+  .gz .r{display:flex;align-items:baseline;gap:6px;padding:2.5px 0;font-size:14.5px}
+  .gz .l{color:var(--ink)}
+  .gz .d{flex:1;border-bottom:1px dotted var(--faint);transform:translateY(-3px)}
+  .gz .n{font-weight:700;font-variant-numeric:lining-nums tabular-nums}
+  .gz .u{color:var(--muted);font-size:12px;font-weight:400;margin-left:4px;font-style:italic}
+  .chart{border:1px solid var(--faint);background:#fffdf6;padding:4px 2px 0}
+  .chart svg{display:block;width:100%;height:auto}
+  .note{font-size:12.5px;color:var(--muted);line-height:1.45;margin-top:6px;font-style:italic}
+  .ins{list-style:none;padding:0;margin:0}
+  .ins li{padding:7px 0;border-top:1px dotted var(--faint);font-size:14px;line-height:1.4}
+  .ins li:first-child{border-top:0}
+  .foot{position:fixed;left:32px;bottom:28px;font-size:11px;color:var(--muted);z-index:4;max-width:230px;line-height:1.35;font-style:italic}
+  @media (max-width:900px){
+    #metrics{display:none}#dock{min-width:0;width:calc(100vw - 40px);bottom:20px}
+    #panel{left:14px;right:14px;width:auto;top:auto;height:58vh;bottom:190px;transform:translateY(140%)}
+    #title{max-width:230px}#search{width:130px}.foot{display:none}
+  }
+</style>
+</head>
+<body>
+<div id="globe"></div>
+<div id="frame"></div>
+
+<div id="title" class="box"><div class="in"><h1 id="t-title"></h1><div class="sub" id="t-sub"></div><div id="world"></div></div></div>
+
+<div id="metrics" class="box"><div class="in"><div class="hd sc" id="mhd"></div><div id="mlist"></div></div></div>
+
+<div id="tools">
+  <input id="search" list="clist" autocomplete="off">
+  <datalist id="clist"></datalist>
+  <button id="spin" class="tbtn"></button>
+  <button id="lang" class="tbtn">PT</button>
+</div>
+
+<div id="dock" class="box"><div class="in">
+  <div id="legendttl"><b id="lname"></b><i id="lunit"></i></div>
+  <div id="legend"></div>
+  <div id="timeline">
+    <button id="play" aria-label="play"><svg viewBox="0 0 14 14" id="playicon"><path d="M3 1.5v11l9-5.5z"/></svg></button>
+    <div id="yearbox"><div id="year">2024</div><div id="phase"></div></div>
+    <div id="tl"><input id="slider" type="range" min="1950" max="2100" step="1" value="2024"><div id="tlab"></div></div>
+  </div>
+</div></div>
+
+<div id="panel" class="box"><div id="pin"><button id="close">×</button><div id="pscroll"></div></div></div>
+<div class="foot" id="foot"></div>
+
+<script>/*__GLOBE_LIB__*/</script>
+<script>
+const GEO = /*__GEOJSON__*/;
+const DATA = /*__DATA__*/;
+const Y0 = 1950, Y1 = 2100, SPLIT = 2024;
+
+/* ================= i18n ================= */
+const I18N = {
+  pt:{title:"Atlas demográfico", sub:"ONU · World Population Prospects 2024 · Team Ipanema", metrics:"Camadas",
+    world:"população mundial (soma dos países)", search:"Buscar país…", spin:"Girar", spinOff:"Parar giro",
+    est:"estimativa", proj:"projeção (mediana)", nodata:"sem dados", click:"clique para a ficha do país",
+    foot:"Fonte: UN WPP 2024 (Medium + OtherVariants). 1950–2023: estimativas; 2024–2100: projeção. Limites: Natural Earth.",
+    kpi:{pop:"População", g:"Crescimento anual", t:"Fecundidade (TFR)", l:"Esperança de vida", a:"Idade mediana", i:"Mortalidade infantil", b:"Natalidade (CBR)", d:"Mortalidade (CDR)"},
+    u:{g:"% a.a.", t:"filhos/mulher", l:"anos", a:"anos", i:"por mil", b:"por mil", d:"por mil"},
+    m:{g:"Crescimento populacional", t:"Fecundidade (TFR)", l:"Esperança de vida", a:"Idade mediana", p:"População", b:"Natalidade (CBR)", d:"Mortalidade (CDR)", m:"Migração líquida", pk:"Ano do pico populacional"},
+    mu:{g:"% ao ano", t:"filhos por mulher · reposição = 2,1", l:"anos ao nascer", a:"anos", p:"habitantes", b:"nascimentos por mil", d:"óbitos por mil", m:"por mil habitantes", pk:"mediana da projeção"},
+    stillGrowing:"ainda cresce em 2100", rank:n=>`${n}ª maior população em 2024`,
+    chPop:"População: histórico e projeção", chTfr:"Fecundidade (TFR)", chLex:"Esperança de vida ao nascer",
+    ins:"Notas", peak:(y,lo,hi)=>`<b>Pico populacional</b> (mediana) em <b>${y}</b>; faixa IC 95%: ${lo}–${hi}.`,
+    peakNone:()=>`<b>Sem pico</b> até 2100 na mediana: a população ainda cresce no fim do século.`,
+    natDec:(y)=>`<b>Saldo natural negativo</b> (mortes > nascimentos) a partir de <b>${y}</b>.`, natNo:"Saldo natural segue positivo até 2100.",
+    repl:(y)=>`<b>Fecundidade abaixo da reposição</b> (TFR < 2,1) desde <b>${y}</b>.`, replNo:"Fecundidade ainda acima da reposição em 2100.",
+    sign:"2100 frente a 2024",
+    cls:["Queda robusta","Queda provável","Direção incerta","Alta provável","Alta robusta"],
+    clsx:["O IC 95% de 2100 inteiro fica abaixo da população de 2024.","O IC 80% de 2100 fica abaixo da população de 2024 (≥ 90% de chance de queda).","O IC 95% de 2100 cobre a população de 2024: não dá para afirmar se haverá alta ou queda.","O IC 80% de 2100 fica acima da população de 2024.","O IC 95% de 2100 inteiro fica acima da população de 2024."],
+    pi2100:(a,b,c)=>`Em 2100: mediana <b>${b}</b>, IC 95% de ${a} a ${c}.`,
+    chNote:"Faixas: intervalos de predição de 80% (escuro) e 95% (claro). Linha tracejada: ano selecionado."},
+  en:{title:"Demographic Atlas", sub:"UN · World Population Prospects 2024 · Team Ipanema", metrics:"Layers",
+    world:"world population (sum of countries)", search:"Search country…", spin:"Spin", spinOff:"Stop spin",
+    est:"estimate", proj:"projection (median)", nodata:"no data", click:"click for the country sheet",
+    foot:"Source: UN WPP 2024 (Medium + OtherVariants). 1950–2023: estimates; 2024–2100: projection. Boundaries: Natural Earth.",
+    kpi:{pop:"Population", g:"Annual growth", t:"Fertility (TFR)", l:"Life expectancy", a:"Median age", i:"Infant mortality", b:"Birth rate (CBR)", d:"Death rate (CDR)"},
+    u:{g:"% p.a.", t:"births/woman", l:"years", a:"years", i:"per 1,000", b:"per 1,000", d:"per 1,000"},
+    m:{g:"Population growth", t:"Fertility (TFR)", l:"Life expectancy", a:"Median age", p:"Population", b:"Birth rate (CBR)", d:"Death rate (CDR)", m:"Net migration", pk:"Year of peak population"},
+    mu:{g:"% per year", t:"births per woman · replacement = 2.1", l:"years at birth", a:"years", p:"inhabitants", b:"births per 1,000", d:"deaths per 1,000", m:"per 1,000 inhabitants", pk:"projection median"},
+    stillGrowing:"still growing in 2100", rank:n=>`#${n} largest population in 2024`,
+    chPop:"Population: history and projection", chTfr:"Fertility (TFR)", chLex:"Life expectancy at birth",
+    ins:"Notes", peak:(y,lo,hi)=>`<b>Population peak</b> (median) in <b>${y}</b>; 95% PI range: ${lo}–${hi}.`,
+    peakNone:()=>`<b>No peak</b> by 2100 in the median: population is still growing at the end of the century.`,
+    natDec:(y)=>`<b>Natural decrease</b> (deaths > births) from <b>${y}</b> on.`, natNo:"Natural change stays positive through 2100.",
+    repl:(y)=>`<b>Below-replacement fertility</b> (TFR < 2.1) since <b>${y}</b>.`, replNo:"Fertility still above replacement in 2100.",
+    sign:"2100 versus 2024",
+    cls:["Robust decline","Likely decline","Uncertain direction","Likely growth","Robust growth"],
+    clsx:["The whole 95% PI for 2100 lies below the 2024 population.","The 80% PI for 2100 lies below the 2024 population (≥ 90% chance of decline).","The 95% PI for 2100 covers the 2024 population: we cannot tell whether it will be larger or smaller.","The 80% PI for 2100 lies above the 2024 population.","The whole 95% PI for 2100 lies above the 2024 population."],
+    pi2100:(a,b,c)=>`In 2100: median <b>${b}</b>, 95% PI from ${a} to ${c}.`,
+    chNote:"Bands: 80% (dark) and 95% (light) prediction intervals. Dashed line: selected year."}
+};
+let lang = "en";   // inglês por padrão (botão PT alterna para português)
+const T = () => I18N[lang];
+
+/* ================= helpers de formatação ================= */
+function fnum(v,d=1){ if (v==null) return '–'; let s = v.toFixed(d); if (lang==='pt') s = s.replace('.', ','); return s.replace('-','−'); }
+function fsgn(v,d=1){ return (v>0?'+':'') + fnum(v,d); }
+function fmtPop(k){
+  if (k==null) return '–';
+  const u = lang==='en' ? ['k','M','B'] : ['mil','mi','bi'];
+  if (k>=1e6) return fnum(k/1e6,2)+' '+u[2];
+  if (k>=1e3) return fnum(k/1e3,k>=1e5?0:1)+' '+u[1];
+  return fnum(k,0)+' '+u[0];
+}
+
+/* ================= camadas (classes cartográficas) ================= */
+// br = limites das classes; col = uma cor por classe (len(br)+1). Paletas ColorBrewer.
+const METRICS = {
+  g :{key:'g', br:[-1,-.25,.25,1,2,3],      col:['#b2182b','#ef8a62','#f4f1ea','#d1e5f0','#92c5de','#4393c3','#2166ac'], ef:v=>fsgn(v,v%1?2:0)+'%'},
+  t :{key:'t', br:[1.5,2.1,3,4,5,6],        col:['#2166ac','#92c5de','#fee8c8','#fdbb84','#fc8d59','#e34a33','#b30000'], ef:v=>fnum(v,1)},
+  l :{key:'l', br:[45,55,62,68,74,80],      col:['#ffffcc','#c7e9b4','#7fcdbb','#41b6c4','#1d91c0','#225ea8','#0c2c84'], ef:v=>fnum(v,0)},
+  a :{key:'a', br:[20,25,30,35,40,45],      col:['#ffffd4','#fee391','#fec44f','#fe9929','#ec7014','#cc4c02','#8c2d04'], ef:v=>fnum(v,0)},
+  p :{key:'p', br:[1e3,5e3,1e4,3e4,1e5,3e5],col:['#f1eef6','#d0d1e6','#a6bddb','#74a9cf','#3690c0','#02818a','#016450'], ef:v=>fmtPop(v)},
+  b :{key:'b', br:[10,15,20,30,40,45],       col:['#fff7ec','#fee8c8','#fdd49e','#fdbb84','#fc8d59','#e34a33','#b30000'], ef:v=>fnum(v,0)},
+  d :{key:'d', br:[5,7,9,11,13,16],          col:['#edf8fb','#bfd3e6','#9ebcda','#8c96c6','#8c6bb1','#88419d','#6e016b'], ef:v=>fnum(v,0)},
+  m :{key:'m', br:[-10,-3,-.5,.5,3,10],      col:['#b35806','#f1a340','#fee0b6','#f4f1ea','#d8daeb','#998ec3','#542788'], ef:v=>fsgn(v,v%1?1:0)},
+  pk:{key:'pk',br:[2001,2021,2041,2061,2081],col:['#7f0000','#b30000','#e34a33','#fc8d59','#fdbb84','#fdd49e'], ef:v=>String(v), static:true, still:'#2c7fb8'}
+};
+const ORDER = ['g','t','l','a','p','b','d','m','pk'];
+const NODATA = '#e4dcc7';
+const CLS_COL = ['#b2182b','#ef8a62','#a89f8c','#67a9cf','#2166ac'];
+
+function classOf(m, v){ let i = 0; while (i < m.br.length && v >= m.br[i]) i++; return i; }
+
+/* ================= estado ================= */
+let metric = 'g', year = 2024, selected = null, hover = null, playing = false, timer = null, spinning = true;
+const isos = Object.keys(DATA);
+const nameOf = iso => DATA[iso].n[lang];
+const featIso = f => f.properties.iso;
+function val(iso, mk, y){
+  const d = DATA[iso]; if (!d) return null;
+  if (mk==='pk') return d.pk;
+  const v = d[METRICS[mk].key][y-Y0]; return (v===null||v===undefined) ? null : v;
+}
+function colorFor(mk, v){
+  const m = METRICS[mk];
+  if (v==null) return NODATA;
+  if (mk==='pk' && v>=2100) return m.still;
+  return m.col[classOf(m, v)];
+}
+function mixHex(c, d, t){ const A=[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)), B=[1,3,5].map(i=>parseInt(d.slice(i,i+2),16)); return '#'+A.map((x,i)=>Math.round(x+(B[i]-x)*t).toString(16).padStart(2,'0')).join(''); }
+function featColor(f){
+  const iso = featIso(f), c = DATA[iso] ? colorFor(metric, val(iso, metric, year)) : NODATA;
+  return (selected && iso!==selected) ? mixHex(c, '#e6e0cf', 0.45) : c;   // país selecionado fica em destaque; o resto esmaece
+}
+
+/* ================= textura do oceano com graticule ================= */
+function makeOcean(){
+  const W = 4096, H = 2048, c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  g.fillStyle = '#d3e0e6'; g.fillRect(0, 0, W, H);
+  const line = (x0,y0,x1,y1,w,a)=>{ g.strokeStyle = `rgba(52,86,106,${a})`; g.lineWidth = w; g.beginPath(); g.moveTo(x0,y0); g.lineTo(x1,y1); g.stroke(); };
+  for (let lon=-180; lon<=180; lon+=10){ const x=(lon+180)/360*W; line(x,0,x,H, lon%30===0?2.2:1.1, lon%30===0?.5:.26); }
+  for (let lat=-90; lat<=90; lat+=10){ const y=(90-lat)/180*H; line(0,y,W,y, lat===0?2.2:(lat%30===0?2:1.1), lat===0?.55:(lat%30===0?.45:.26)); }
+  return c.toDataURL('image/png');
+}
+
+/* ================= globo ================= */
+const el = document.getElementById('globe');
+const labelData = () => GEO.features.filter(f=>f.properties.sp>=11 && f.properties.name).map(f=>({
+  lat:f.properties.c[1], lng:f.properties.c[0], text:f.properties.name[lang].toUpperCase(), size:0.28+Math.min(f.properties.sp,60)/60*0.34 }));
+const globe = Globe({animateIn:true})(el)
+  .globeImageUrl(makeOcean())
+  .backgroundColor('#e8e0cc')
+  .showAtmosphere(false)
+  .polygonsData(GEO.features)
+  .polygonCapColor(featColor)
+  .polygonSideColor(()=> 'rgba(70,62,48,.45)')
+  .polygonStrokeColor(()=> '#4a4436')
+  .polygonAltitude(0.004)
+  .polygonsTransitionDuration(240)
+  .polygonLabel(f => tooltip(f))
+  .onPolygonHover(f => { hover = f; el.style.cursor = (f && DATA[featIso(f)]) ? 'pointer' : 'grab'; refresh(false); })
+  .onPolygonClick(f => { if (f && DATA[featIso(f)]) select(featIso(f), true); })
+  .onGlobeClick(() => deselect())
+  .labelsData(labelData())
+  .labelLat('lat').labelLng('lng').labelText('text').labelSize('size')
+  .labelDotRadius(0).labelColor(()=> 'rgba(42,39,34,.62)').labelResolution(3).labelAltitude(0.009);
+
+// o oceano usa a textura também como emissão: cor fiel ao papel, sem sombreado de "bola 3D"
+(function fixOcean(n){ const gm = globe.globeMaterial(); if (gm.map){ gm.emissive.setHex(0xffffff); gm.emissiveMap = gm.map; gm.emissiveIntensity = 0.4; gm.shininess = 0; gm.needsUpdate = true; } else if (n<60) setTimeout(()=>fixOcean(n+1), 100); })(0);
+try { globe.lights().forEach(l=>{ if (l.isAmbientLight) l.intensity = 2.6; if (l.isDirectionalLight) l.intensity = 0.45; }); } catch(e){}
+const controls = globe.controls();
+controls.autoRotate = true; controls.autoRotateSpeed = 0.45; controls.enableDamping = true; controls.minDistance = 130; controls.maxDistance = 520;
+globe.pointOfView({lat:-8, lng:-50, altitude:2.0}, 0);
+// desloca o globo ~6% da altura da tela para cima, liberando espaço para o quadro da legenda embaixo
+function sizeGlobe(){
+  const W = window.innerWidth, H = window.innerHeight;
+  globe.width(W).height(H);
+  globe.camera().setViewOffset(W, H, 0, Math.round(H*0.06), W, H); globe.camera().updateProjectionMatrix();
+}
+window.addEventListener('resize', sizeGlobe); sizeGlobe();
+controls.addEventListener('start', ()=>{ if (spinning) setSpin(false); });
+
+function selectedFeat(){ return selected ? GEO.features.find(f=>featIso(f)===selected) : null; }
+function refresh(colors=true){
+  const sel = selectedFeat();
+  if (colors) globe.polygonCapColor(featColor);
+  globe.polygonStrokeColor(f => f===sel ? '#14120e' : '#4a4436')
+       .polygonAltitude(f => f===sel ? 0.06 : (f===hover && DATA[featIso(f)] ? 0.022 : 0.004));
+}
+
+function tooltip(f){
+  const iso = featIso(f), nm = f.properties.name[lang];
+  if (!DATA[iso]) return `<div class="tip"><b>${nm}</b><br><span class="m">${T().nodata}</span></div>`;
+  const v = val(iso, metric, year), m = METRICS[metric];
+  let txt = '–';
+  if (v!=null) txt = metric==='p' ? fmtPop(v) : metric==='pk' ? (v>=2100 ? T().stillGrowing : String(v)) : metric==='g' ? fsgn(v,2)+'%' : metric==='m' ? fsgn(v,1) : fnum(v,metric==='t'?2:1);
+  return `<div class="tip"><b>${nameOf(iso)}</b><br><i class="sq" style="background:${colorFor(metric,v)}"></i><span class="m">${T().m[metric]}${metric==='pk'?'':' · '+year}:</span> <span class="v">${txt}</span><div class="m" style="margin-top:2px">${T().click}</div></div>`;
+}
+
+/* ================= UI: camadas, legenda, linha do tempo ================= */
+function buildMetrics(){
+  document.getElementById('mhd').textContent = T().metrics;
+  const box = document.getElementById('mlist'); box.innerHTML = '';
+  ORDER.forEach((k,i)=>{
+    const b = document.createElement('button'); b.className = 'mbtn'+(k===metric?' on':'');
+    b.innerHTML = `<s>${i+1}</s>${T().m[k]}`; b.onclick = ()=>setMetric(k); box.appendChild(b);
+  });
+}
+function setMetric(k){
+  metric = k; buildMetrics(); buildLegend(); document.getElementById('slider').disabled = !!METRICS[k].static;
+  refresh(true); if (selected) renderPanel();
+}
+function buildLegend(){
+  const m = METRICS[metric], n = m.col.length;
+  document.getElementById('lname').textContent = T().m[metric]; document.getElementById('lunit').textContent = T().mu[metric];
+  const lab = i => i===0 ? '< '+m.ef(m.br[0]) : (i===n-1 && metric==='pk') ? m.br[n-2]+'–2099' : i===n-1 ? '≥ '+m.ef(m.br[n-2]) : m.ef(m.br[i-1])+'–'+m.ef(m.br[i]);
+  let h = m.col.map((c,i)=>`<div class="cls"><div class="sw" style="background:${c}"></div><div class="lb">${lab(i)}</div></div>`).join('');
+  if (m.still) h += `<div class="cls" style="flex:1.5"><div class="sw" style="background:${m.still};margin-left:6px;border-left-width:1px"></div><div class="lb" style="margin-left:6px">${T().stillGrowing}</div></div>`;
+  h += `<div class="cls" style="flex:1.1"><div class="sw" style="background:${NODATA};margin-left:8px;border-left-width:1px"></div><div class="lb" style="margin-left:8px">${T().nodata}</div></div>`;
+  document.getElementById('legend').innerHTML = h;
+}
+function buildTlabels(){
+  document.getElementById('tlab').innerHTML = [1950,1975,2000,2025,2050,2075,2100].map(y=>`<span style="left:${(y-Y0)/(Y1-Y0)*100}%">${y}</span>`).join('');
+}
+function setYear(y){
+  year = y; document.getElementById('slider').value = y; document.getElementById('year').textContent = y;
+  const ph = document.getElementById('phase'); const proj = y>=SPLIT;
+  ph.textContent = proj ? T().proj : T().est; ph.className = proj ? 'proj' : '';
+  refresh(true); updateWorld(); if (selected) updateCursor();
+}
+document.getElementById('slider').addEventListener('input', e=>{ stopPlay(); setYear(+e.target.value); });
+function stopPlay(){ playing=false; clearInterval(timer); document.getElementById('playicon').innerHTML='<path d="M3 1.5v11l9-5.5z"/>'; }
+document.getElementById('play').onclick = ()=>{
+  if (METRICS[metric].static) return;
+  if (playing){ stopPlay(); return; }
+  playing = true; document.getElementById('playicon').innerHTML='<path d="M2.5 1.5h3v11h-3zM8.5 1.5h3v11h-3z"/>';
+  if (year>=Y1) setYear(Y0);
+  timer = setInterval(()=>{ if (year>=Y1){ stopPlay(); return; } setYear(year+1); }, 110);
+};
+function updateWorld(){
+  let tot = 0; isos.forEach(i=>{ const v = DATA[i].p[year-Y0]; if (v!=null) tot += v; });
+  document.getElementById('world').innerHTML = `<b>${fmtPop(tot)}</b><span>${T().world}</span>`;
+}
+function setSpin(on){ spinning = on; controls.autoRotate = on; document.getElementById('spin').textContent = on ? T().spinOff : T().spin; }
+document.getElementById('spin').onclick = ()=> setSpin(!spinning);
+document.getElementById('lang').onclick = ()=>{ lang = lang==='pt'?'en':'pt'; applyLang(); };
+
+function applyLang(){
+  document.documentElement.lang = lang==='pt'?'pt-BR':'en';
+  document.getElementById('lang').textContent = lang==='pt'?'EN':'PT';
+  document.getElementById('t-title').textContent = T().title; document.getElementById('t-sub').textContent = T().sub;
+  document.getElementById('search').placeholder = T().search; document.getElementById('foot').textContent = T().foot;
+  const dl = document.getElementById('clist'); dl.innerHTML = '';
+  isos.map(i=>[nameOf(i),i]).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([n])=>{ const o=document.createElement('option'); o.value=n; dl.appendChild(o); });
+  globe.labelsData(labelData());
+  setSpin(spinning); buildMetrics(); buildLegend(); buildTlabels(); setYear(year); if (selected) renderPanel();
+}
+document.getElementById('search').addEventListener('change', e=>{
+  const q = e.target.value.trim().toLowerCase(); const hit = isos.find(i=>nameOf(i).toLowerCase()===q) || isos.find(i=>nameOf(i).toLowerCase().startsWith(q));
+  if (hit){ select(hit, true); e.target.blur(); }
+});
+
+/* ================= seleção e ficha do país ================= */
+function select(iso, fly){
+  selected = iso; setSpin(false); refresh(true); renderPanel();
+  document.getElementById('panel').classList.add('open'); document.body.classList.add('pan');
+  if (fly){ const f = selectedFeat(); if (f) globe.pointOfView({lat:f.properties.c[1], lng:f.properties.c[0], altitude:f.properties.alt}, 1100); }
+}
+function deselect(){ selected = null; document.getElementById('panel').classList.remove('open'); document.body.classList.remove('pan'); refresh(true); }
+document.getElementById('close').onclick = deselect;
+document.addEventListener('keydown', e=>{ if (e.key==='Escape') deselect(); });
+
+/* ---- gráficos SVG ---- */
+const CW = 350, CH = 118, PL = 36, PR = 8, PT = 8, PB = 18;
+const INK = '#2a2722', OX = '#8b2e1f', BLUE = '#3b6f8f';
+function xs(y){ return PL + (y-Y0)/(Y1-Y0)*(CW-PL-PR); }
+function mkScale(lo, hi){ return v => CH-PB - (v-lo)/(hi-lo)*(CH-PB-PT); }
+function path(arr, y0, ys){ let s=''; arr.forEach((v,i)=>{ if (v==null) return; s += (s?'L':'M') + xs(y0+i).toFixed(1)+','+ys(v).toFixed(1); }); return s; }
+function axes(ys, fmt, ticks){
+  let o = ''; [1950,2000,2050,2100].forEach(y=>{ o += `<line x1="${xs(y)}" x2="${xs(y)}" y1="${PT}" y2="${CH-PB}" stroke="${INK}" stroke-opacity=".13" stroke-dasharray="1 3"/><text x="${xs(y)}" y="${CH-5}" fill="#6f675a" font-size="10" text-anchor="middle" font-family="Palatino Linotype,Palatino,Georgia,serif">${y}</text>`; });
+  ticks.forEach(v=>{ o += `<line x1="${PL}" x2="${CW-PR}" y1="${ys(v)}" y2="${ys(v)}" stroke="${INK}" stroke-opacity=".13" stroke-dasharray="1 3"/><text x="${PL-5}" y="${ys(v)+3}" fill="#6f675a" font-size="10" text-anchor="end" font-family="Palatino Linotype,Palatino,Georgia,serif">${fmt(v)}</text>`; });
+  return o + `<rect x="${PL}" y="${PT}" width="${CW-PL-PR}" height="${CH-PB-PT}" fill="none" stroke="${INK}" stroke-opacity=".55"/>`;
+}
+function projShade(){ return `<rect x="${xs(SPLIT)}" y="${PT}" width="${xs(Y1)-xs(SPLIT)}" height="${CH-PB-PT}" fill="${OX}" fill-opacity=".055"/>`; }
+function cursor(){ return `<line class="cur" x1="${xs(year)}" x2="${xs(year)}" y1="${PT}" y2="${CH-PB}" stroke="${INK}" stroke-width="1" stroke-dasharray="4 3"/>`; }
+function updateCursor(){ document.querySelectorAll('.cur').forEach(l=>{ l.setAttribute('x1',xs(year)); l.setAttribute('x2',xs(year)); }); updateKpis(); }
+
+function chartPop(d){
+  const hi = Math.max(...d.pi.u95, ...d.p.filter(v=>v!=null)), ys = mkScale(0, hi*1.05);
+  const pre = d.p.slice(0, SPLIT-Y0+1);
+  const band = (u,l)=>{ const U=u.map((v,i)=>xs(SPLIT+i).toFixed(1)+','+ys(v).toFixed(1)); const L=l.map((v,i)=>xs(SPLIT+i).toFixed(1)+','+ys(v).toFixed(1)).reverse(); return 'M'+U.join('L')+'L'+L.join('L')+'Z'; };
+  const raw = hi*1.05, step = Math.pow(10, Math.floor(Math.log10(raw))), n = raw/step>5 ? 2*step : step, tk = []; for (let v=n; v<raw; v+=n) tk.push(v);
+  return `<svg viewBox="0 0 ${CW} ${CH}">${axes(ys,fmtPop,tk.slice(0,4))}${projShade()}
+    <path d="${band(d.pi.u95,d.pi.l95)}" fill="${BLUE}" fill-opacity=".20"/><path d="${band(d.pi.u80,d.pi.l80)}" fill="${BLUE}" fill-opacity=".38"/>
+    <path d="${path(pre,Y0,ys)}" fill="none" stroke="${INK}" stroke-width="1.8"/>
+    <path d="${path(d.pi.md,SPLIT,ys)}" fill="none" stroke="${OX}" stroke-width="1.8"/>${cursor()}</svg>`;
+}
+function chartLine(d, key, lo, hi, step, color, refLine){
+  const ys = mkScale(lo,hi); const tk=[]; for (let v=lo+step; v<hi; v+=step) tk.push(v);
+  return `<svg viewBox="0 0 ${CW} ${CH}">${axes(ys,v=>fnum(v,0),tk)}${projShade()}
+    ${refLine!=null?`<line x1="${PL}" x2="${CW-PR}" y1="${ys(refLine)}" y2="${ys(refLine)}" stroke="${OX}" stroke-dasharray="5 3"/><text x="${CW-PR-3}" y="${ys(refLine)-4}" fill="${OX}" font-size="10" text-anchor="end" font-family="Palatino Linotype,Palatino,Georgia,serif" font-style="italic">${lang==='pt'?'reposição 2,1':'replacement 2.1'}</text>`:''}
+    <path d="${path(d[key],Y0,ys)}" fill="none" stroke="${color}" stroke-width="1.8"/>${cursor()}</svg>`;
+}
+
+function kpiHtml(d){
+  const t = T(), k = t.kpi, u = t.u, v = key => d[key][year-Y0];
+  const rows = [
+    ['pop', fmtPop(d.p[year-Y0]), ''], ['g', fsgn(v('g'),2), u.g], ['t', fnum(v('t'),2), u.t], ['l', fnum(v('l'),1), u.l],
+    ['a', fnum(v('a'),1), u.a], ['i', fnum(v('i'),1), u.i], ['b', fnum(v('b'),1), u.b], ['d', fnum(v('d'),1), u.d]
+  ];
+  return rows.map(([key,val,unit])=>`<div class="r"><span class="l">${k[key]}</span><span class="d"></span><span class="n">${val}<span class="u">${unit}</span></span></div>`).join('');
+}
+function updateKpis(){ const e = document.getElementById('kpis'); if (e && selected) e.innerHTML = kpiHtml(DATA[selected]); const y=document.getElementById('kyear'); if (y) y.textContent = year; const ph=document.getElementById('kph'); if (ph) ph.textContent = year>=SPLIT ? T().proj : T().est; }
+
+function renderPanel(){
+  const d = DATA[selected]; const t = T();
+  const peakTxt = d.pk>=2100 ? t.peakNone() : t.peak(d.pk, d.pkLo>=2100?'≥2100':d.pkLo, d.pkHi>=2100?'≥2100':d.pkHi);
+  const lastP = d.pi.md[d.pi.md.length-1];
+  const ins = [peakTxt, d.nd ? t.natDec(d.nd) : t.natNo, d.rp ? t.repl(d.rp) : t.replNo];
+  document.getElementById('pscroll').innerHTML = `
+    <h2 class="cname">${nameOf(selected)}</h2>
+    <div class="csub">${selected} · ${t.rank(d.rk)}</div>
+    <span class="tag"><i style="background:${CLS_COL[d.cls]}"></i>${t.cls[d.cls]} · 2100</span>
+    <h3><span id="kyear">${year}</span> <em>(<span id="kph">${year>=SPLIT?t.proj:t.est}</span>)</em></h3>
+    <div class="gz" id="kpis">${kpiHtml(d)}</div>
+    <h3>${t.chPop}</h3><div class="chart">${chartPop(d)}</div>
+    <div class="note">${t.pi2100(fmtPop(d.pi.l95[d.pi.l95.length-1]), fmtPop(lastP), fmtPop(d.pi.u95[d.pi.u95.length-1]))}<br>${t.chNote}</div>
+    <h3>${t.chTfr}</h3><div class="chart">${chartLine(d,'t',0,Math.max(7.5,Math.ceil(Math.max(...d.t.filter(v=>v!=null)))),1,INK,2.1)}</div>
+    <h3>${t.chLex}</h3><div class="chart">${chartLine(d,'l',20,100,20,INK,null)}</div>
+    <h3>${t.ins}</h3>
+    <ul class="ins">${ins.map(x=>`<li>${x}</li>`).join('')}<li><b>${t.sign}:</b> ${t.cls[d.cls].toLowerCase()}. ${t.clsx[d.cls]}</li></ul>`;
+  document.getElementById('pscroll').scrollTop = 0;
+}
+
+/* ================= início ================= */
+applyLang();
+</script>
+</body>
+</html>

@@ -96,6 +96,10 @@ outputs/reports/*.docx
 !outputs/reports/.gitkeep
 
 # ------------------------------------------------------------------------------
+# Bibliotecas e mapas baixados sob demanda pelo build_globe.py
+static/assets/globe/
+
+# ------------------------------------------------------------------------------
 # 6. IDEs e Ferramentas do Sistema Operacional
 # ------------------------------------------------------------------------------
 .vscode/
