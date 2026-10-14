@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#e8e0cc">
 <title>Demographic Atlas · WPP 2024</title>
 <style>
   :root{
@@ -24,6 +25,8 @@
   #title h1{margin:0;font-size:22px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
   #title .sub{margin-top:4px;font-size:12.5px;font-style:italic;color:var(--muted)}
   #world{margin-top:9px;padding-top:8px;border-top:1px solid var(--ink);font-size:12px;color:var(--muted);display:flex;align-items:baseline;gap:9px}
+  #world em{font-style:normal}
+  #world .s{display:none}
   #world b{font-size:19px;color:var(--ink);font-weight:700;font-variant-numeric:lining-nums tabular-nums}
 
   /* ---- layers ---- */
@@ -39,6 +42,17 @@
   #tools{position:fixed;right:30px;top:30px;z-index:7;display:flex;gap:6px;align-items:stretch}
   #search{width:220px;padding:7px 11px;border:1px solid var(--ink);background:var(--paper2);outline:none;font-size:14px;font-style:italic}
   #search:focus{background:#fff}
+  #sbox{position:relative;display:flex}
+  #search{-webkit-appearance:none;appearance:none;border-radius:0}
+  #search::-webkit-search-cancel-button{-webkit-appearance:none;display:none}
+  #sugg{display:none;position:absolute;right:0;top:calc(100% + 5px);width:max(100%,230px);max-height:min(52vh,330px);overflow:auto;-webkit-overflow-scrolling:touch;background:var(--paper2);border:1px solid var(--ink);box-shadow:3px 3px 0 rgba(42,39,34,.28);z-index:25}
+  #sugg.open{display:block}
+  .si{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:9px 12px;font-size:15px;color:var(--ink);border-bottom:1px dotted var(--faint);cursor:pointer}
+  .si:last-child{border-bottom:0}
+  .si small{font-size:10.5px;letter-spacing:.08em;color:var(--faint)}
+  .si.on,.si:hover{background:rgba(138,31,31,.08);box-shadow:inset 3px 0 0 var(--ox)}
+  .si.none{color:var(--muted);font-style:italic;cursor:default}
+  .si.none:hover{background:none;box-shadow:none}
   .tbtn{padding:7px 13px;border:1px solid var(--ink);background:var(--paper2);font-size:13px}
   .tbtn:hover{background:var(--ink);color:var(--paper2)}
 
@@ -57,7 +71,7 @@
   #play{width:32px;height:32px;border:1px solid var(--ink);background:var(--paper2);display:grid;place-items:center;flex:none;padding:0}
   #play:hover{background:var(--ink)}#play:hover svg{fill:var(--paper2)}
   #play svg{width:12px;height:12px;fill:var(--ink)}
-  #yearbox{min-width:98px;text-align:center}
+  #yearbox{width:120px;flex:none;text-align:center;white-space:nowrap}
   #year{font-size:27px;font-weight:700;line-height:1;font-variant-numeric:lining-nums tabular-nums}
   #phase{font-size:11px;margin-top:3px;color:var(--muted);font-style:italic}
   #phase.proj{color:var(--ox)}
@@ -72,8 +86,14 @@
   #tlab span{position:absolute;transform:translateX(-50%);font-variant-numeric:lining-nums}
 
   /* ---- tooltip ---- */
+  .scene-tooltip{z-index:30 !important}
   .tip{padding:6px 10px;background:var(--paper2);border:1px solid var(--ink);font:13px var(--serif);color:var(--ink);box-shadow:2px 2px 0 rgba(42,39,34,.2)}
   .tip b{font-size:14px}.tip .v{font-weight:700;color:var(--ox)}.tip .m{color:var(--muted);font-style:italic}
+  .clab{position:absolute;left:0;top:0;pointer-events:none;white-space:nowrap;font:700 10px "Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;letter-spacing:.1em;text-transform:uppercase;color:#1f1c17;
+    text-shadow:0 0 2px #f4eee0,0 0 2px #f4eee0,0 0 4px #f4eee0,0 0 6px rgba(244,238,224,.9);will-change:transform}
+  .clab.off{visibility:hidden}
+  #lbls{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:2}
+  #tipbox{position:fixed;left:0;top:0;z-index:30;pointer-events:none;display:none}
   .tip i.sq{display:inline-block;width:10px;height:10px;border:1px solid var(--ink);margin-right:5px;vertical-align:-1px}
 
   /* ---- gazetteer panel ---- */
@@ -103,10 +123,87 @@
   .ins li{padding:7px 0;border-top:1px dotted var(--faint);font-size:14px;line-height:1.4}
   .ins li:first-child{border-top:0}
   .foot{position:fixed;left:32px;bottom:28px;font-size:11px;color:var(--muted);z-index:4;max-width:230px;line-height:1.35;font-style:italic}
+  #mwrap,#dfoot{display:none}
+  .bnd{position:relative;height:13px;font-size:9px;color:var(--muted);margin-top:2px}
+  .bnd span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+  .chips{display:flex;gap:12px;font-size:9.5px;color:var(--muted);margin-top:2px}
+  .chip i{display:inline-block;width:10px;height:8px;border:1px solid var(--ink);margin-right:4px;vertical-align:-1px}
   @media (max-width:900px){
-    #metrics{display:none}#dock{min-width:0;width:calc(100vw - 40px);bottom:20px}
-    #panel{left:14px;right:14px;width:auto;top:auto;height:58vh;bottom:190px;transform:translateY(140%)}
-    #title{max-width:230px}#search{width:130px}.foot{display:none}
+    html,body{touch-action:manipulation}
+    #frame{inset:4px;outline:none}
+    #title{left:10px;top:calc(10px + env(safe-area-inset-top));padding:2px;max-width:calc(100vw - 20px)}
+    #title .in{padding:7px 11px 6px;display:flex;align-items:baseline;gap:10px}
+    #title h1{font-size:13px;letter-spacing:.12em;white-space:nowrap}
+    #title .sub{display:none}
+    #world{margin:0;padding:0;border:0;font-size:11px;gap:5px}
+    #world b{font-size:14px}
+    #world{display:none}
+    #metrics,.foot{display:none}
+    #tools{left:10px;right:10px;top:calc(54px + env(safe-area-inset-top));gap:5px}
+    #sbox{flex:1;min-width:0}
+    #search{flex:1;width:100%;min-width:0;font-size:16px;padding:5px 10px}
+    .tbtn{padding:5px 11px;font-size:13px}
+    #dock{left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));transform:none;width:auto;min-width:0;padding:2px}
+    #dock .in{padding:7px 10px 6px}
+    #mwrap{display:flex;align-items:stretch;position:relative;margin:0 0 7px;background:var(--paper);border:1px solid var(--ink);box-shadow:2px 2px 0 rgba(42,39,34,.18)}
+    #mtag{display:flex;align-items:center;padding:0 10px;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);border-right:1px solid var(--faint);background:var(--paper2);white-space:nowrap}
+    #msel{display:block;flex:1;min-width:0;margin:0;padding:9px 34px 9px 11px;font:inherit;font-size:16px;font-weight:600;letter-spacing:.01em;border:0;border-radius:0;background:transparent;color:var(--ink);-webkit-appearance:none;appearance:none;text-overflow:ellipsis;outline:none}
+    #mwrap .chev{position:absolute;right:0;top:0;bottom:0;width:30px;border-left:1px solid var(--faint);background:var(--paper2);pointer-events:none}
+    #mwrap .chev::after{content:"";position:absolute;left:50%;top:50%;width:6px;height:6px;border-right:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);transform:translate(-50%,-70%) rotate(45deg)}
+    #msel{text-align:left;cursor:pointer;white-space:nowrap;overflow:hidden}
+    #mpop{display:none;position:absolute;left:-1px;right:-1px;bottom:calc(100% + 7px);max-height:min(66vh,400px);overflow:auto;background:var(--paper2);border:1px solid var(--ink);box-shadow:3px 3px 0 rgba(42,39,34,.28);z-index:20}
+    #mwrap.open #mpop{display:block}
+    #mwrap.open .chev::after{transform:translate(-50%,-30%) rotate(-135deg)}
+    .mo{display:flex;align-items:baseline;gap:11px;width:100%;text-align:left;padding:8px 13px;font:inherit;font-size:16px;color:var(--ink);background:transparent;border:0;border-bottom:1px dotted var(--faint);border-radius:0}
+    .mo:last-child{border-bottom:0}
+    .mo s{text-decoration:none;color:var(--faint);font-size:12px;width:12px;flex:none}
+    .mo.on{font-weight:700;background:rgba(138,31,31,.08);box-shadow:inset 3px 0 0 var(--ox)}
+    #mwrap:focus-within{box-shadow:0 0 0 2px rgba(138,31,31,.35),2px 2px 0 rgba(42,39,34,.18)}
+    #legendttl{margin-bottom:4px}
+    #legendttl b{display:none}
+    #legendttl i{font-size:11.5px;margin-left:auto}
+    #legend{display:block}
+    #legend .row{display:flex}
+    #timeline{margin-top:6px;padding-top:6px;gap:9px}
+    #yearbox{width:96px}
+    #year{font-size:21px}
+    #phase{font-size:9.5px}
+    #play{width:38px;height:38px}
+    #tl{padding-bottom:13px;margin:0 12px 0 10px}
+    #slider{height:30px}
+    #slider::-webkit-slider-thumb{width:24px;height:24px}
+    #slider::-moz-range-thumb{width:20px;height:20px}
+    #tlab span:nth-child(even){display:none}
+    #dfoot{display:block;font-size:8.5px;color:var(--muted);font-style:italic;margin-top:3px;line-height:1.25}
+    /* ficha do pa\u00eds vira folha inferior; o dock some enquanto ela est\u00e1 aberta */
+    #panel{left:8px;right:8px;width:auto;top:auto;bottom:calc(8px + env(safe-area-inset-bottom));height:58vh;height:58dvh;max-height:520px;transform:translateY(calc(100% + 24px))}
+    #panel.open{transform:none}
+    body.pan #dock{display:none}
+    #pscroll{padding:12px 14px 16px}
+    .cname{font-size:22px}
+    .csub{font-size:12px}
+    .gz .r{font-size:13.5px}
+    h3{margin-top:16px}
+  }
+  @media (max-width:900px) and (orientation:landscape){
+    #title .in{padding:5px 10px 4px}
+    #tools{left:auto;right:10px;top:calc(10px + env(safe-area-inset-top))}
+    #sbox{flex:none}
+    #search{flex:none;width:150px}
+    body.pan #tools{display:none}
+    #panel{left:auto;right:8px;top:8px;bottom:8px;width:min(340px,46vw);height:auto;max-height:none;transform:translateX(calc(100% + 24px))}
+    #panel.open{transform:none}
+    body.pan #dock{display:block;left:10px;right:calc(min(340px,46vw) + 16px);width:auto}
+    #dock .in{display:grid;grid-template-columns:minmax(120px,200px) 1fr;column-gap:12px;align-items:center;padding:5px 10px 4px}
+    #mwrap{grid-column:1;margin:0}
+    #msel{padding:5px 30px 5px 9px;font-size:15px}
+    #mtag{display:none}
+    #legendttl{display:none}
+    #legend{grid-column:2}
+    #timeline{grid-column:1 / -1;margin-top:3px;padding-top:4px}
+    #slider{height:22px}
+    #dfoot{display:none}
+    #legend .chips{display:none}
   }
 </style>
 </head>
@@ -119,13 +216,13 @@
 <div id="metrics" class="box"><div class="in"><div class="hd sc" id="mhd"></div><div id="mlist"></div></div></div>
 
 <div id="tools">
-  <input id="search" list="clist" autocomplete="off">
-  <datalist id="clist"></datalist>
+  <div id="sbox"><input id="search" type="search" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search" role="combobox" aria-autocomplete="list" aria-controls="sugg"><div id="sugg" role="listbox"></div></div>
   <button id="spin" class="tbtn"></button>
   <button id="lang" class="tbtn">PT</button>
 </div>
 
 <div id="dock" class="box"><div class="in">
+  <div id="mwrap"><span id="mtag"></span><button id="msel" type="button" aria-haspopup="listbox"></button><span class="chev"></span><div id="mpop" role="listbox"></div></div>
   <div id="legendttl"><b id="lname"></b><i id="lunit"></i></div>
   <div id="legend"></div>
   <div id="timeline">
@@ -133,6 +230,7 @@
     <div id="yearbox"><div id="year">2024</div><div id="phase"></div></div>
     <div id="tl"><input id="slider" type="range" min="1950" max="2100" step="1" value="2024"><div id="tlab"></div></div>
   </div>
+  <div id="dfoot"></div>
 </div></div>
 
 <div id="panel" class="box"><div id="pin"><button id="close">×</button><div id="pscroll"></div></div></div>
@@ -147,7 +245,7 @@ const Y0 = 1950, Y1 = 2100, SPLIT = 2024;
 /* ================= i18n ================= */
 const I18N = {
   pt:{title:"Atlas demográfico", sub:"ONU · World Population Prospects 2024 · Team Ipanema", metrics:"Camadas",
-    world:"população mundial (soma dos países)", search:"Buscar país…", spin:"Girar", spinOff:"Parar giro",
+    world:"população mundial (soma dos países)", worldS:"pop. mundial", search:"Buscar país…", spin:"Girar", spinOff:"Parar giro",
     est:"estimativa", proj:"projeção (mediana)", nodata:"sem dados", click:"clique para a ficha do país",
     foot:"Fonte: UN WPP 2024 (Medium + OtherVariants). 1950–2023: estimativas; 2024–2100: projeção. Limites: Natural Earth.",
     kpi:{pop:"População", g:"Crescimento anual", t:"Fecundidade (TFR)", l:"Esperança de vida", a:"Idade mediana", i:"Mortalidade infantil", b:"Natalidade (CBR)", d:"Mortalidade (CDR)"},
@@ -166,7 +264,7 @@ const I18N = {
     pi2100:(a,b,c)=>`Em 2100: mediana <b>${b}</b>, IC 95% de ${a} a ${c}.`,
     chNote:"Faixas: intervalos de predição de 80% (escuro) e 95% (claro). Linha tracejada: ano selecionado."},
   en:{title:"Demographic Atlas", sub:"UN · World Population Prospects 2024 · Team Ipanema", metrics:"Layers",
-    world:"world population (sum of countries)", search:"Search country…", spin:"Spin", spinOff:"Stop spin",
+    world:"world population (sum of countries)", worldS:"world pop.", search:"Search country…", spin:"Spin", spinOff:"Stop spin",
     est:"estimate", proj:"projection (median)", nodata:"no data", click:"click for the country sheet",
     foot:"Source: UN WPP 2024 (Medium + OtherVariants). 1950–2023: estimates; 2024–2100: projection. Boundaries: Natural Earth.",
     kpi:{pop:"Population", g:"Annual growth", t:"Fertility (TFR)", l:"Life expectancy", a:"Median age", i:"Infant mortality", b:"Birth rate (CBR)", d:"Death rate (CDR)"},
@@ -241,59 +339,244 @@ function featColor(f){
 }
 
 /* ================= textura do oceano com graticule ================= */
-function makeOcean(){
-  const W = 4096, H = 2048, c = document.createElement('canvas'); c.width = W; c.height = H;
+function makeOceanCanvas(W, H){
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
   const g = c.getContext('2d');
   g.fillStyle = '#d3e0e6'; g.fillRect(0, 0, W, H);
-  const line = (x0,y0,x1,y1,w,a)=>{ g.strokeStyle = `rgba(52,86,106,${a})`; g.lineWidth = w; g.beginPath(); g.moveTo(x0,y0); g.lineTo(x1,y1); g.stroke(); };
+  const k = W/4096;
+  const line = (x0,y0,x1,y1,w,a)=>{ g.strokeStyle = `rgba(52,86,106,${a})`; g.lineWidth = w*k; g.beginPath(); g.moveTo(x0,y0); g.lineTo(x1,y1); g.stroke(); };
   for (let lon=-180; lon<=180; lon+=10){ const x=(lon+180)/360*W; line(x,0,x,H, lon%30===0?2.2:1.1, lon%30===0?.5:.26); }
   for (let lat=-90; lat<=90; lat+=10){ const y=(90-lat)/180*H; line(0,y,W,y, lat===0?2.2:(lat%30===0?2:1.1), lat===0?.55:(lat%30===0?.45:.26)); }
-  return c.toDataURL('image/png');
+  return c;
 }
+const WEAK = (navigator.hardwareConcurrency || 8) <= 2 || (navigator.deviceMemory || 8) <= 2;   // só aparelhos realmente fracos reduzem a qualidade
+const TOUCH = /Android|iPhone|iPad|Mobi/i.test(navigator.userAgent);
 
 /* ================= globo ================= */
 const el = document.getElementById('globe');
-const labelData = () => GEO.features.filter(f=>f.properties.sp>=11 && f.properties.name).map(f=>({
-  lat:f.properties.c[1], lng:f.properties.c[0], text:f.properties.name[lang].toUpperCase(), size:0.28+Math.min(f.properties.sp,60)/60*0.34 }));
-const globe = Globe({animateIn:true})(el)
-  .globeImageUrl(makeOcean())
+const ph = document.createElement('canvas'); ph.width = 4; ph.height = 2; ph.getContext('2d').fillStyle = '#d3e0e6'; ph.getContext('2d').fillRect(0,0,4,2);
+const globe = Globe({animateIn:false, rendererConfig:{antialias: !WEAK && !TOUCH, alpha:true, powerPreference:'high-performance'}})(el)
+  .globeImageUrl(ph.toDataURL())
   .backgroundColor('#e8e0cc')
   .showAtmosphere(false)
-  .polygonsData(GEO.features)
+  .polygonsData([])                       // só o país selecionado / sob o mouse viram malha 3D; o resto é textura
   .polygonCapColor(featColor)
   .polygonSideColor(()=> 'rgba(70,62,48,.45)')
   .polygonStrokeColor(()=> '#4a4436')
-  .polygonAltitude(0.004)
-  .polygonsTransitionDuration(240)
-  .polygonLabel(f => tooltip(f))
-  .onPolygonHover(f => { hover = f; el.style.cursor = (f && DATA[featIso(f)]) ? 'pointer' : 'grab'; refresh(false); })
-  .onPolygonClick(f => { if (f && DATA[featIso(f)]) select(featIso(f), true); })
-  .onGlobeClick(() => deselect())
-  .labelsData(labelData())
-  .labelLat('lat').labelLng('lng').labelText('text').labelSize('size')
-  .labelDotRadius(0).labelColor(()=> 'rgba(42,39,34,.62)').labelResolution(3).labelAltitude(0.009);
+  .polygonAltitude(0.022)
+  .polygonsTransitionDuration(150);
+globe.enablePointerInteraction(false);   // sem raycast por país: hover e clique são calculados abaixo (1 raio na esfera + ponto-em-polígono)
+globe.renderer().setPixelRatio(Math.min(window.devicePixelRatio || 1, WEAK ? 1.25 : TOUCH ? 2 : 1.5));
 
-// o oceano usa a textura também como emissão: cor fiel ao papel, sem sombreado de "bola 3D"
-(function fixOcean(n){ const gm = globe.globeMaterial(); if (gm.map){ gm.emissive.setHex(0xffffff); gm.emissiveMap = gm.map; gm.emissiveIntensity = 0.4; gm.shininess = 0; gm.needsUpdate = true; } else if (n<60) setTimeout(()=>fixOcean(n+1), 100); })(0);
+/* ================= terra: todos os países pintados numa única textura ================= */
+const LW = (WEAK || globe.renderer().capabilities.maxTextureSize < 4096) ? 2048 : 4096, LH = LW/2;
+const baseC = makeOceanCanvas(LW, LH);
+const landC = document.createElement('canvas'); landC.width = LW; landC.height = LH;
+const lg = landC.getContext('2d');
+const gx = lon => (lon+180)/360*LW, gy = lat => (90-lat)/180*LH;
+const allStroke = new Path2D();
+const FEAT = GEO.features.map(f => {
+  const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
+  const fill = new Path2D(), stroke = new Path2D(), parts = [];
+  polys.forEach(poly => {
+    poly.forEach(ring => {
+      let pen = false;
+      ring.forEach((q, i) => {
+        const x = gx(q[0]), y = gy(q[1]);
+        if (i === 0) fill.moveTo(x, y); else fill.lineTo(x, y);
+        const edge = i > 0 && Math.abs(q[0]) >= 179.99 && Math.abs(ring[i-1][0]) >= 179.99 && Math.sign(q[0]) === Math.sign(ring[i-1][0]);   // corte no antimeridiano: sem linha
+        if (!pen || edge) stroke.moveTo(x, y); else stroke.lineTo(x, y);
+        pen = true;
+      });
+      fill.closePath();
+    });
+    const o = poly[0]; let x0=999, y0=999, x1=-999, y1=-999;
+    o.forEach(q => { if (q[0]<x0) x0=q[0]; if (q[0]>x1) x1=q[0]; if (q[1]<y0) y0=q[1]; if (q[1]>y1) y1=q[1]; });
+    parts.push({bb:[x0,y0,x1,y1], rings:poly});
+  });
+  allStroke.addPath(stroke);
+  return {f, fill, stroke, parts};
+});
+let landTex = null, landQ = false;
+function redrawLand(){
+  lg.drawImage(baseC, 0, 0);
+  for (const e of FEAT){ lg.fillStyle = featColor(e.f); lg.fill(e.fill, 'evenodd'); }
+  lg.lineJoin = 'round'; lg.lineCap = 'round';
+  lg.strokeStyle = '#4a4436'; lg.lineWidth = LW/4096*1.7; lg.stroke(allStroke);
+  if (selected){ const e = FEAT.find(q => featIso(q.f) === selected); if (e){ lg.strokeStyle = '#14120e'; lg.lineWidth = LW/4096*3; lg.stroke(e.stroke); } }
+  if (landTex){ landTex.needsUpdate = true; wake(); }
+}
+function scheduleLand(){ if (landQ) return; landQ = true; requestAnimationFrame(()=>{ landQ = false; redrawLand(); }); }
+// troca a textura placeholder pela do mapa (também usada como emissão: cor fiel ao papel, sem sombreado de "bola 3D")
+(function initLand(n){
+  const gm = globe.globeMaterial();
+  if (gm.map){
+    const old = gm.map, t = new old.constructor(landC);
+    if ('colorSpace' in old) t.colorSpace = old.colorSpace;
+    if ('encoding' in old) t.encoding = old.encoding;
+    t.anisotropy = Math.min(WEAK ? 2 : TOUCH ? 4 : 8, globe.renderer().capabilities.getMaxAnisotropy());
+    gm.map = t; gm.emissive.setHex(0xffffff); gm.emissiveMap = t; gm.emissiveIntensity = 0.4; gm.shininess = 0; gm.needsUpdate = true;
+    landTex = t; old.dispose(); redrawLand();
+  } else if (n < 80) setTimeout(()=>initLand(n+1), 100);
+})(0);
 try { globe.lights().forEach(l=>{ if (l.isAmbientLight) l.intensity = 2.6; if (l.isDirectionalLight) l.intensity = 0.45; }); } catch(e){}
 const controls = globe.controls();
-controls.autoRotate = true; controls.autoRotateSpeed = 0.45; controls.enableDamping = true; controls.minDistance = 130; controls.maxDistance = 520;
-globe.pointOfView({lat:-8, lng:-50, altitude:2.0}, 0);
-// desloca o globo ~6% da altura da tela para cima, liberando espaço para o quadro da legenda embaixo
-function sizeGlobe(){
+controls.autoRotate = true; controls.autoRotateSpeed = 0.45; controls.enableDamping = true; controls.minDistance = 130; controls.maxDistance = 760;
+const MOBILE = window.matchMedia('(max-width: 900px)');
+const LANDSCAPE = window.matchMedia('(orientation: landscape)');
+const rectOf = id => document.getElementById(id).getBoundingClientRect();
+// area livre para o globo: desktop desloca ~6% para cima; no celular fica entre os controles do topo e o dock/folha de baixo
+function freeArea(){
   const W = window.innerWidth, H = window.innerHeight;
-  globe.width(W).height(H);
-  globe.camera().setViewOffset(W, H, 0, Math.round(H*0.06), W, H); globe.camera().updateProjectionMatrix();
+  if (!MOBILE.matches) return {W, H, top: 0, bottom: H, left: 0, right: W, dx: 0, dy: Math.round(H*0.06)};
+  const pan = document.body.classList.contains('pan');
+  let top = Math.max(rectOf('tools').bottom, rectOf('title').bottom) + 6, bottom = H - 6, left = 0, right = W;
+  if (pan && !LANDSCAPE.matches) bottom = H - document.getElementById('panel').offsetHeight - 14;
+  else if (document.getElementById('dock').offsetHeight) bottom = rectOf('dock').top - 6;
+  if (pan && LANDSCAPE.matches){ right = W - Math.min(340, W*0.46) - 16; top = 8; }
+  return {W, H, top, bottom, left, right, dx: Math.round(W/2 - (left+right)/2), dy: Math.round(H/2 - (top+bottom)/2)};
 }
-window.addEventListener('resize', sizeGlobe); sizeGlobe();
-controls.addEventListener('start', ()=>{ if (spinning) setSpin(false); });
+// altitude da camera para o globo caber na area livre (desktop: 2.0)
+function fitAlt(){
+  const a = freeArea(), d = Math.min(a.right - a.left, a.bottom - a.top) * 0.94, ratio = Math.min(d / a.H, 0.758);
+  const th = Math.atan(ratio * Math.tan(25 * Math.PI/180));
+  return Math.max(2.0 * (MOBILE.matches ? 0.55 : 1), 1/Math.sin(th) - 1);
+}
+function sizeGlobe(){
+  const a = freeArea();
+  globe.width(a.W).height(a.H);
+  globe.camera().setViewOffset(a.W, a.H, a.dx, a.dy, a.W, a.H); globe.camera().updateProjectionMatrix(); lastArea = a; if (typeof scheduleLabels === 'function') scheduleLabels();
+}
+window.addEventListener('resize', ()=>{ sizeGlobe(); });
+window.addEventListener('orientationchange', ()=> setTimeout(()=>{ buildLegend(); sizeGlobe(); globe.pointOfView({altitude: fitAlt()}, 400); wake(1500); }, 250));
+MOBILE.addEventListener('change', ()=>{ buildLegend(); sizeGlobe(); });
+/* ---------- desempenho ---------- */
+// o loop de render pausa quando nada muda (sem giro, sem play, sem interação)
+let idleT = null, asleep = false, dragging = false, lastArea = null;
+function wake(ms = 2500){
+  if (asleep){ asleep = false; globe.resumeAnimation(); }   // flag evita recursão: resumeAnimation dispara o evento 'change' dos controles
+  clearTimeout(idleT);
+  idleT = setTimeout(()=>{ if (!spinning && !playing && !dragging){ asleep = true; globe.pauseAnimation(); } }, ms);
+}
+['pointermove','pointerdown','wheel','touchstart','keydown'].forEach(ev => window.addEventListener(ev, ()=>wake(), {passive:true}));
+controls.addEventListener('start', ()=>{ if (spinning) setSpin(false); wake(); });
+controls.addEventListener('change', ()=> wake());
+globe.onZoom(()=>{ scheduleLabels(); wake(); });
+
+/* ---------- hover, clique e tooltip próprios ---------- */
+const tipEl = document.createElement('div'); tipEl.id = 'tipbox'; document.body.appendChild(tipEl);
+let lastPt = null, pickQ = false, downPt = null;
+function inRing(r, x, y){ let c = false; for (let i=0, j=r.length-1; i<r.length; j=i++){ const a = r[i], b = r[j]; if ((a[1]>y) !== (b[1]>y) && x < (b[0]-a[0])*(y-a[1])/(b[1]-a[1]) + a[0]) c = !c; } return c; }
+function pickFeat(lat, lng){
+  for (const e of FEAT) for (const P of e.parts){
+    const b = P.bb; if (lng<b[0] || lng>b[2] || lat<b[1] || lat>b[3] || !inRing(P.rings[0], lng, lat)) continue;
+    let hole = false; for (let k=1; k<P.rings.length; k++) if (inRing(P.rings[k], lng, lat)){ hole = true; break; }
+    if (!hole) return e.f;
+  }
+  return null;
+}
+// raio da câmera até a esfera (raio 100): devolve lat/lng do ponto sob o cursor, ou null se estiver no espaço
+function coordsAt(x, y){
+  const cam = globe.camera(), V = cam.position.constructor, o = cam.position;
+  const q = new V(2*x/window.innerWidth - 1, 1 - 2*y/window.innerHeight, 0.5).unproject(cam);
+  const dx = q.x-o.x, dy = q.y-o.y, dz = q.z-o.z, L = Math.hypot(dx, dy, dz), ux = dx/L, uy = dy/L, uz = dz/L;
+  const b = o.x*ux + o.y*uy + o.z*uz, c = o.x*o.x + o.y*o.y + o.z*o.z - 10000, disc = b*b - c;
+  if (disc < 0) return null;
+  const t = -b - Math.sqrt(disc), px = o.x + t*ux, py = o.y + t*uy, pz = o.z + t*uz;
+  let lng = 90 - Math.atan2(pz, px)*180/Math.PI; lng = ((lng + 540) % 360) - 180;
+  return {lat: Math.asin(Math.max(-1, Math.min(1, py/100)))*180/Math.PI, lng};
+}
+function featAt(x, y){ const c = coordsAt(x, y); return c ? pickFeat(c.lat, c.lng) : null; }
+function moveTip(){
+  if (!lastPt || !hover) return;
+  const r = tipEl.getBoundingClientRect(); let x = lastPt.x + 16, y = lastPt.y + 18;
+  if (x + r.width > innerWidth - 8) x = lastPt.x - r.width - 12;
+  if (y + r.height > innerHeight - 8) y = lastPt.y - r.height - 12;
+  tipEl.style.transform = `translate(${x}px,${y}px)`;
+}
+function setHover(f){
+  if (f === hover) return;
+  hover = f; el.style.cursor = (f && DATA[featIso(f)]) ? 'pointer' : 'grab';
+  if (f){ tipEl.innerHTML = tooltip(f); tipEl.style.display = 'block'; } else tipEl.style.display = 'none';
+  refresh(false);
+}
+el.addEventListener('pointermove', e => {
+  lastPt = {x:e.clientX, y:e.clientY};
+  if (dragging || e.pointerType === 'touch' || pickQ) return;
+  pickQ = true;
+  requestAnimationFrame(()=>{ pickQ = false; if (dragging || !lastPt) return; setHover(featAt(lastPt.x, lastPt.y)); moveTip(); });
+});
+el.addEventListener('pointerleave', ()=> setHover(null));
+el.addEventListener('pointerdown', e => { dragging = true; downPt = e.isPrimary ? {x:e.clientX, y:e.clientY, t:performance.now()} : null; setHover(null); }, true);
+window.addEventListener('pointerup', e => {
+  const d = downPt; downPt = null; dragging = false;
+  if (!d || !e.isPrimary || Math.hypot(e.clientX-d.x, e.clientY-d.y) > 6 || performance.now()-d.t > 700) return;
+  const f = featAt(e.clientX, e.clientY);
+  if (f && DATA[featIso(f)]) select(featIso(f), true); else if (selected) deselect();
+});
+window.addEventListener('pointercancel', ()=>{ dragging = false; downPt = null; });
+
+/* ---------- rótulos: camada própria, por tamanho do país na tela + sem sobreposição ---------- */
+const lblLayer = document.createElement('div'); lblLayer.id = 'lbls'; el.appendChild(lblLayer);
+const LAB = GEO.features.filter(f => DATA[featIso(f)] && f.properties.sp >= 0.6).sort((a,b) => b.properties.sp - a.properties.sp).map(f => {
+  const la = f.properties.c[1], lo = f.properties.c[0], ph_ = (90-la)*Math.PI/180, th = (90-lo)*Math.PI/180;
+  const e = document.createElement('div'); e.className = 'clab off'; lblLayer.appendChild(e);
+  return {f, el:e, lat:la, lng:lo, sp:f.properties.sp, w:60, h:12, on:false, tx:'', v:[Math.sin(ph_)*Math.cos(th), Math.cos(ph_), Math.sin(ph_)*Math.sin(th)]};
+});
+function updateLabels(force){
+  if (force){
+    const mob = MOBILE.matches;
+    LAB.forEach(L => { L.el.textContent = L.f.properties.name[lang].toUpperCase(); L.el.style.fontSize = ((mob ? 8 : 9) + Math.min(L.sp, 45)/45*(mob ? 2.5 : 3.5)).toFixed(1) + 'px'; });
+    LAB.forEach(L => { L.w = L.el.offsetWidth; L.h = L.el.offsetHeight; });
+  }
+  scheduleLabels();
+}
+let lblQ = false;
+function scheduleLabels(){ if (lblQ) return; lblQ = true; requestAnimationFrame(layoutLabels); }
+function layoutLabels(){
+  lblQ = false;
+  const cam = globe.camera(), p = cam.position, n = Math.hypot(p.x, p.y, p.z), mob = MOBILE.matches;
+  const a = lastArea || freeArea(), W = window.innerWidth;
+  const pxDeg = (window.innerHeight/2) / Math.tan(cam.fov*Math.PI/360) * (100*Math.PI/180) / Math.max(n-100, 1);   // pixels por grau no centro do globo
+  const minSpan = mob ? 34 : 24, ratio = mob ? 1.25 : 0.45, maxN = mob ? 14 : 70;
+  const placed = []; let count = 0, i = 0;
+  for (; i < LAB.length; i++){
+    const L = LAB[i];
+    if (L.sp*pxDeg < minSpan) break;                  // ordenados por tamanho: o resto é menor ainda
+    let ok = false, x = 0, y = 0;
+    if (count < maxN && L.sp*pxDeg >= ratio*L.w && (L.v[0]*p.x + L.v[1]*p.y + L.v[2]*p.z)/n > 0.28){
+      const sc = globe.getScreenCoords(L.lat, L.lng, 0.012);
+      if (sc){
+        x = sc.x; y = sc.y;
+        const hw = L.w/2 + 3, hh = L.h/2 + 1;
+        if (x-hw >= 2 && x+hw <= W-2 && y-hh >= a.top && y+hh <= a.bottom){
+          ok = true;
+          for (const r of placed) if (x-hw < r[2] && x+hw > r[0] && y-hh < r[3] && y+hh > r[1]){ ok = false; break; }
+          if (ok){ placed.push([x-hw, y-hh, x+hw, y+hh]); count++; }
+        }
+      }
+    }
+    if (ok){
+      const tx = `translate3d(${x.toFixed(0)}px,${y.toFixed(0)}px,0) translate(-50%,-50%)`;
+      if (tx !== L.tx){ L.el.style.transform = tx; L.tx = tx; }
+      if (!L.on){ L.el.classList.remove('off'); L.on = true; }
+    } else if (L.on){ L.el.classList.add('off'); L.on = false; }
+  }
+  for (; i < LAB.length; i++) if (LAB[i].on){ LAB[i].el.classList.add('off'); LAB[i].on = false; }
+}
 
 function selectedFeat(){ return selected ? GEO.features.find(f=>featIso(f)===selected) : null; }
 function refresh(colors=true){
+  wake();
   const sel = selectedFeat();
-  if (colors) globe.polygonCapColor(featColor);
-  globe.polygonStrokeColor(f => f===sel ? '#14120e' : '#4a4436')
-       .polygonAltitude(f => f===sel ? 0.06 : (f===hover && DATA[featIso(f)] ? 0.022 : 0.004));
+  if (colors) scheduleLand();
+  const list = []; if (sel) list.push(sel); if (hover && hover !== sel && DATA[featIso(hover)]) list.push(hover);
+  const key = list.map(featIso).join(',') + '|' + (sel ? selected : '');
+  if (colors || key !== refresh.key){
+    refresh.key = key;
+    globe.polygonsData(list).polygonCapColor(featColor).polygonStrokeColor(f => f===sel ? '#14120e' : '#4a4436').polygonAltitude(f => f===sel ? 0.06 : 0.022);
+  }
+  if (colors && hover) tipEl.innerHTML = tooltip(hover);
 }
 
 function tooltip(f){
@@ -313,6 +596,15 @@ function buildMetrics(){
     const b = document.createElement('button'); b.className = 'mbtn'+(k===metric?' on':'');
     b.innerHTML = `<s>${i+1}</s>${T().m[k]}`; b.onclick = ()=>setMetric(k); box.appendChild(b);
   });
+  const cur = document.getElementById('msel'), pop = document.getElementById('mpop'), wrap = document.getElementById('mwrap');
+  document.getElementById('mtag').textContent = T().metrics;
+  cur.textContent = `${ORDER.indexOf(metric)+1} · ${T().m[metric]}`;
+  pop.innerHTML = ORDER.map((k,i)=>`<button type="button" class="mo${k===metric?' on':''}" data-k="${k}"><s>${i+1}</s>${T().m[k]}</button>`).join('');
+  pop.onclick = e => { const b = e.target.closest('.mo'); if (b){ wrap.classList.remove('open'); setMetric(b.dataset.k); } };
+  cur.onclick = () => wrap.classList.toggle('open');
+  if (!buildMetrics.bound){ buildMetrics.bound = true;
+    document.addEventListener('pointerdown', e => { if (!wrap.contains(e.target)) wrap.classList.remove('open'); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') wrap.classList.remove('open'); }); }
 }
 function setMetric(k){
   metric = k; buildMetrics(); buildLegend(); document.getElementById('slider').disabled = !!METRICS[k].static;
@@ -321,7 +613,14 @@ function setMetric(k){
 function buildLegend(){
   const m = METRICS[metric], n = m.col.length;
   document.getElementById('lname').textContent = T().m[metric]; document.getElementById('lunit').textContent = T().mu[metric];
-  const lab = i => i===0 ? '< '+m.ef(m.br[0]) : (i===n-1 && metric==='pk') ? m.br[n-2]+'–2099' : i===n-1 ? '≥ '+m.ef(m.br[n-2]) : m.ef(m.br[i-1])+'–'+m.ef(m.br[i]);
+  if (MOBILE.matches){
+    const sw = m.col.map(c=>`<div class="cls"><div class="sw" style="background:${c}"></div></div>`).join('');
+    const bl = m.br.map((b,i)=>`<span style="left:${(i+1)/n*100}%">${m.ef(b)}</span>`).join('');
+    const chips = (m.still ? `<span class="chip"><i style="background:${m.still}"></i>${T().stillGrowing}</span>` : '') + `<span class="chip"><i style="background:${NODATA}"></i>${T().nodata}</span>`;
+    document.getElementById('legend').innerHTML = `<div class="row">${sw}</div><div class="bnd">${bl}</div><div class="chips">${chips}</div>`;
+    return;
+  }
+  const lab = i => i===0 ? '< '+m.ef(m.br[0]) : (i===n-1 && metric==='pk') ? m.br[n-2]+'\u20132099' : i===n-1 ? '\u2265 '+m.ef(m.br[n-2]) : m.ef(m.br[i-1])+'\u2013'+m.ef(m.br[i]);
   let h = m.col.map((c,i)=>`<div class="cls"><div class="sw" style="background:${c}"></div><div class="lb">${lab(i)}</div></div>`).join('');
   if (m.still) h += `<div class="cls" style="flex:1.5"><div class="sw" style="background:${m.still};margin-left:6px;border-left-width:1px"></div><div class="lb" style="margin-left:6px">${T().stillGrowing}</div></div>`;
   h += `<div class="cls" style="flex:1.1"><div class="sw" style="background:${NODATA};margin-left:8px;border-left-width:1px"></div><div class="lb" style="margin-left:8px">${T().nodata}</div></div>`;
@@ -343,13 +642,13 @@ document.getElementById('play').onclick = ()=>{
   if (playing){ stopPlay(); return; }
   playing = true; document.getElementById('playicon').innerHTML='<path d="M2.5 1.5h3v11h-3zM8.5 1.5h3v11h-3z"/>';
   if (year>=Y1) setYear(Y0);
-  timer = setInterval(()=>{ if (year>=Y1){ stopPlay(); return; } setYear(year+1); }, 110);
+  timer = setInterval(()=>{ if (year>=Y1){ stopPlay(); return; } setYear(year+1); }, WEAK ? 160 : 120);
 };
 function updateWorld(){
   let tot = 0; isos.forEach(i=>{ const v = DATA[i].p[year-Y0]; if (v!=null) tot += v; });
-  document.getElementById('world').innerHTML = `<b>${fmtPop(tot)}</b><span>${T().world}</span>`;
+  document.getElementById('world').innerHTML = `<b>${fmtPop(tot)}</b><span><em class="l">${T().world}</em><em class="s">${T().worldS} · ${year}</em></span>`;
 }
-function setSpin(on){ spinning = on; controls.autoRotate = on; document.getElementById('spin').textContent = on ? T().spinOff : T().spin; }
+function setSpin(on){ spinning = on; controls.autoRotate = on; wake(); document.getElementById('spin').textContent = on ? T().spinOff : T().spin; }
 document.getElementById('spin').onclick = ()=> setSpin(!spinning);
 document.getElementById('lang').onclick = ()=>{ lang = lang==='pt'?'en':'pt'; applyLang(); };
 
@@ -357,24 +656,50 @@ function applyLang(){
   document.documentElement.lang = lang==='pt'?'pt-BR':'en';
   document.getElementById('lang').textContent = lang==='pt'?'EN':'PT';
   document.getElementById('t-title').textContent = T().title; document.getElementById('t-sub').textContent = T().sub;
-  document.getElementById('search').placeholder = T().search; document.getElementById('foot').textContent = T().foot;
-  const dl = document.getElementById('clist'); dl.innerHTML = '';
-  isos.map(i=>[nameOf(i),i]).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([n])=>{ const o=document.createElement('option'); o.value=n; dl.appendChild(o); });
-  globe.labelsData(labelData());
+  document.getElementById('search').placeholder = T().search; document.getElementById('foot').textContent = T().foot; document.getElementById('dfoot').textContent = T().foot;
+  buildSuggest();
+  updateLabels(true);
   setSpin(spinning); buildMetrics(); buildLegend(); buildTlabels(); setYear(year); if (selected) renderPanel();
 }
-document.getElementById('search').addEventListener('change', e=>{
-  const q = e.target.value.trim().toLowerCase(); const hit = isos.find(i=>nameOf(i).toLowerCase()===q) || isos.find(i=>nameOf(i).toLowerCase().startsWith(q));
-  if (hit){ select(hit, true); e.target.blur(); }
+/* ---------- busca com lista de sugestões (funciona em iOS/Android; sem <datalist>) ---------- */
+const norm = t => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const sIn = document.getElementById('search'), sBox = document.getElementById('sugg');
+let sList = [], sIdx = -1;
+function buildSuggest(){ sList = isos.map(i => ({iso:i, n:nameOf(i), k:norm(nameOf(i))})).sort((a,b) => a.n.localeCompare(b.n)); if (sBox.classList.contains('open')) showSuggest(); }
+function showSuggest(){
+  const q = norm(sIn.value.trim());
+  const hits = q ? sList.filter(c => c.k.startsWith(q)).concat(sList.filter(c => !c.k.startsWith(q) && c.k.split(/[\s'-]+/).some(w => w.startsWith(q))), sList.filter(c => !c.k.startsWith(q) && !c.k.split(/[\s'-]+/).some(w => w.startsWith(q)) && c.k.includes(q))) : sList;
+  sIdx = hits.length && q ? 0 : -1; sBox._hits = hits;
+  sBox.innerHTML = hits.length ? hits.map((c,i) => `<div class="si${i===sIdx?' on':''}" role="option" data-i="${i}"><span>${c.n}</span><small>${c.iso}</small></div>`).join('') : `<div class="si none">${lang==='pt'?'Nenhum país encontrado':'No country found'}</div>`;
+  sBox.classList.add('open'); sBox.scrollTop = 0;
+}
+function hideSuggest(){ sBox.classList.remove('open'); sIdx = -1; }
+function pickSuggest(i){ const c = sBox._hits && sBox._hits[i]; if (!c) return; sIn.value = c.n; hideSuggest(); sIn.blur(); select(c.iso, true); }
+function moveSuggest(d){
+  const n = (sBox._hits || []).length; if (!n) return;
+  sIdx = (sIdx + d + n) % n;
+  sBox.querySelectorAll('.si').forEach((e,i) => e.classList.toggle('on', i === sIdx));
+  const e = sBox.children[sIdx]; if (e) e.scrollIntoView({block:'nearest'});
+}
+sIn.addEventListener('input', showSuggest);
+sIn.addEventListener('focus', showSuggest);
+sIn.addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown'){ e.preventDefault(); if (!sBox.classList.contains('open')) showSuggest(); else moveSuggest(1); }
+  else if (e.key === 'ArrowUp'){ e.preventDefault(); moveSuggest(-1); }
+  else if (e.key === 'Enter'){ e.preventDefault(); pickSuggest(Math.max(sIdx, 0)); }
+  else if (e.key === 'Escape'){ hideSuggest(); sIn.blur(); }
 });
+sBox.addEventListener('pointerdown', e => e.preventDefault());          // mantém o foco no campo (evita fechar antes do toque)
+sBox.addEventListener('click', e => { const it = e.target.closest('.si[data-i]'); if (it) pickSuggest(+it.dataset.i); });
+document.addEventListener('pointerdown', e => { if (!e.target.closest('#sbox')) hideSuggest(); });
 
 /* ================= seleção e ficha do país ================= */
 function select(iso, fly){
   selected = iso; setSpin(false); refresh(true); renderPanel();
-  document.getElementById('panel').classList.add('open'); document.body.classList.add('pan');
-  if (fly){ const f = selectedFeat(); if (f) globe.pointOfView({lat:f.properties.c[1], lng:f.properties.c[0], altitude:f.properties.alt}, 1100); }
+  document.getElementById('panel').classList.add('open'); document.body.classList.add('pan'); sizeGlobe();
+  if (fly){ const f = selectedFeat(); if (f) globe.pointOfView({lat:f.properties.c[1], lng:f.properties.c[0], altitude:f.properties.alt * (MOBILE.matches ? 1.5 : 1)}, 1100); wake(3500); }
 }
-function deselect(){ selected = null; document.getElementById('panel').classList.remove('open'); document.body.classList.remove('pan'); refresh(true); }
+function deselect(){ selected = null; document.getElementById('panel').classList.remove('open'); document.body.classList.remove('pan'); sizeGlobe(); refresh(true); }
 document.getElementById('close').onclick = deselect;
 document.addEventListener('keydown', e=>{ if (e.key==='Escape') deselect(); });
 
@@ -442,6 +767,8 @@ function renderPanel(){
 
 /* ================= início ================= */
 applyLang();
+sizeGlobe();
+globe.pointOfView({lat:-8, lng:-50, altitude:fitAlt()}, 0);
 </script>
 </body>
 </html>
