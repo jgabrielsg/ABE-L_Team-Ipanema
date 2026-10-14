@@ -61,6 +61,64 @@ def _round_coords(c, nd=3):
     return [_round_coords(x, nd) for x in c]
 
 
+SIMPLIFY_TOL = 0.05  # graus (~5 km): invisível em zoom de país, reduz muito o custo de renderização e de picking
+
+
+def _rdp(pts, tol):
+    """Douglas-Peucker iterativo (numpy)."""
+    pts = np.asarray(pts, dtype=float)
+    n = len(pts)
+    keep = np.zeros(n, bool)
+    keep[0] = keep[-1] = True
+    stack = [(0, n - 1)]
+    while stack:
+        i, j = stack.pop()
+        if j <= i + 1:
+            continue
+        a, b = pts[i], pts[j]
+        seg = pts[i + 1:j]
+        d = b - a
+        L = np.hypot(d[0], d[1])
+        if L == 0:
+            dist = np.hypot(seg[:, 0] - a[0], seg[:, 1] - a[1])
+        else:
+            dist = np.abs(d[0] * (seg[:, 1] - a[1]) - d[1] * (seg[:, 0] - a[0])) / L
+        k = int(dist.argmax())
+        if dist[k] > tol:
+            idx = i + 1 + k
+            keep[idx] = True
+            stack += [(i, idx), (idx, j)]
+    return pts[keep].tolist()
+
+
+def _simplify_ring(ring, tol=SIMPLIFY_TOL):
+    if len(ring) <= 12:  # ilhas e microestados ficam intactos
+        return ring
+    out = _rdp(ring, tol)
+    return out if len(out) >= 4 else ring
+
+
+MIN_PART_SPAN = 1.0   # graus: ilhas menores que isso são omitidas (cada pedaço de polígono custa vários draw calls)
+KEEP_PARTS = 3        # mas todo país mantém ao menos seus 3 maiores pedaços (arquipélagos continuam clicáveis)
+
+
+def _ring_span(r):
+    xs = [x for x, _ in r]
+    ys = [y for _, y in r]
+    return max(max(xs) - min(xs), max(ys) - min(ys))
+
+
+def _simplify_coords(c):
+    """Simplifica cada anel, omite ilhas minúsculas e arredonda (Polygon e MultiPolygon)."""
+    def poly(p):
+        return [_round_coords(_simplify_ring(r)) for r in p]
+    if isinstance(c[0][0][0], (int, float)):
+        return poly(c)
+    ranked = sorted(range(len(c)), key=lambda i: -_ring_span(c[i][0]))
+    keep = {i for k, i in enumerate(ranked) if k < KEEP_PARTS or _ring_span(c[i][0]) >= MIN_PART_SPAN}
+    return [poly(p) for i, p in enumerate(c) if i in keep]
+
+
 def load_geo():
     """GeoJSON enxuto: propriedades mínimas, centro e altitude de câmera por país."""
     raw = json.loads((ASSET_DIR / "countries_50m.geojson").read_text(encoding="utf-8"))
@@ -82,7 +140,7 @@ def load_geo():
                 "alt": round(0.8 + min(span, 60) / 60 * 1.4, 2),
                 "sp": round(span, 1),
             },
-            "geometry": {"type": f["geometry"]["type"], "coordinates": _round_coords(f["geometry"]["coordinates"])},
+            "geometry": {"type": f["geometry"]["type"], "coordinates": _simplify_coords(f["geometry"]["coordinates"])},
         })
     # territórios que herdam o ISO do país principal (ex.: Ilhas do Oceano Índico -> AUS) ficam sem dados
     count = {}
